@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生积分管理系统 · 显示器</title>
+    <!-- ===== 基础框架 ===== -->
+    <!-- 云端数据服务模块 -->
+    <script src="api.js"></script>
+    <!-- Tailwind CSS — 原子化 CSS 框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome — 图标库 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        /* =====================================================
+         * Tailwind 自定义主题配置
+         * 扩展了默认颜色主题、字号、阴影和动画
+         * ===================================================== */
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        /* 主色 — 紫蓝色渐变系 */
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a' },
+                        /* 辅色 — 翡翠绿系 */
+                        secondary: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b' },
+                        /* 强调色 — 琥珀黄系 */
+                        accent: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d', 400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309', 800: '#92400e', 900: '#78350f' },
+                        /* 危险色 — 红色系 */
+                        danger: { 50: '#fef2f2', 100: '#fee2e2', 200: '#fecaca', 300: '#fca5a5', 400: '#f87171', 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c', 800: '#991b1b', 900: '#7f1d1d' },
+                        dark: '#1E293B', light: '#F8FAFC'
+                    },
+                    /* 字体栈：优先微软雅黑，适合中文显示 */
+                    fontFamily: { sans: ['Microsoft YaHei', '"微软雅黑"', 'Inter', 'system-ui', 'sans-serif'] },
+                    /* 自定义阴影等级 */
+                    boxShadow: { 'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)', 'card': '0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.05)', 'card-hover': '0 0 0 1px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.08)' },
+                    /* 入场动画 */
+                    animation: { 'fade-in': 'fadeIn 0.5s ease-in-out', 'slide-up': 'slideUp 0.5s ease-out', 'scale-in': 'scaleIn 0.3s ease-out' },
+                    /* 动画关键帧定义 */
+                    keyframes: { fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }, slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } }, scaleIn: { '0%': { transform: 'scale(0.9)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* =====================================================
+         * 全局重置 & 基础样式
+         * ===================================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* 渐变背景 + 大字号，适合大屏展示场景 */
+        body { font-family: 'Microsoft YaHei', '微软雅黑', 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; font-size: 20px; }
+
+        /* ===== 文字渐变色工具类 ===== */
+        .text-gradient-primary { background: linear-gradient(135deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .text-gradient-secondary { background: linear-gradient(135deg, #10b981, #059669); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .text-gradient-accent { background: linear-gradient(135deg, #f59e0b, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .text-gradient-danger { background: linear-gradient(135deg, #ef4444, #dc2626); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+        /* ===== 按钮渐变 + 悬浮动效 ===== */
+        .btn-gradient-primary { background: linear-gradient(135deg, #667eea, #764ba2); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .btn-gradient-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 14px 0 rgba(102, 126, 234, 0.39); }
+        .btn-gradient-secondary { background: linear-gradient(135deg, #10b981, #059669); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .btn-gradient-secondary:hover { transform: translateY(-2px); box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.39); }
+        .btn-gradient-accent { background: linear-gradient(135deg, #f59e0b, #d97706); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .btn-gradient-accent:hover { transform: translateY(-2px); box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.39); }
+        .btn-gradient-danger { background: linear-gradient(135deg, #ef4444, #dc2626); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .btn-gradient-danger:hover { transform: translateY(-2px); box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.39); }
+
+        /* ===== 背景渐变工具类 ===== */
+        .bg-gradient-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .bg-gradient-dark { background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%); }
+        .bg-gradient-card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); }
+
+        /* ===== 通用卡片悬浮效果 ===== */
+        .card-hover { transition: box-shadow 0.3s ease, transform 0.3s ease; }
+        .card-hover:hover { box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+
+        /* ===== 学生卡片 / 小组卡片 ===== */
+        .student-card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.05); transition: box-shadow 0.3s ease, transform 0.3s ease; }
+        .student-card:hover { box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+
+        .group-card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.05); transition: box-shadow 0.3s ease, transform 0.3s ease; }
+        .group-card:hover { box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+
+        /* ===== 选项卡栏 ===== */
+        #tabs-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.2); }
+        .tab-btn { align-items: center; padding: 0.625rem 1.25rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; color: rgba(255, 255, 255, 0.7); transition: color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease; cursor: pointer; border: none; background: transparent; white-space: nowrap; }
+        .tab-btn:hover { color: white; background: rgba(255, 255, 255, 0.1); }
+        .tab-btn.active { background: white; color: #667eea; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+
+        /* ===== 内容区切换动画 ===== */
+        .tab-content { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .tab-content-animate { animation: slideUp 0.4s ease-out; }
+
+        /* ===== 模态框 ===== */
+        .modal-overlay { background: rgba(0, 0, 0, 0.5); }
+        .modal-content { animation: scaleIn 0.3s ease-out; }
+
+        /* ===== 自定义开关（toggle switch） ===== */
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: 0.3s; border-radius: 26px; }
+        .toggle-slider:before { position: absolute; content: ''; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); }
+        .toggle-switch input:checked + .toggle-slider { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+        /* ===== 排名卡片 ===== */
+        .ranking-card { background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px rgba(0, 0, 0, 0.05); transition: box-shadow 0.3s ease, transform 0.3s ease; }
+        .ranking-card:hover { box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05), 0 20px 40px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+
+        .rank-badge { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.875rem; flex-shrink: 0; }
+
+        .subtab-content-animate { animation: slideUp 0.4s ease-out; }
+
+        /* ===== 输入框聚焦 ===== */
+        .input-focus { transition: border-color 0.3s ease, box-shadow 0.3s ease; }
+        .input-focus:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15); }
+
+        /* ===== 表格 ===== */
+        .table-header-gradient { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .table-header-gradient th { color: white; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; padding: 0.75rem 1rem; }
+
+        /* ===== 排名子选项卡 ===== */
+        .ranking-sub-tab { align-items: center; padding: 0.5rem 1rem; border-radius: 0.625rem; font-weight: 600; font-size: 0.8rem; color: #6b7280; transition: color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease; cursor: pointer; border: none; background: transparent; white-space: nowrap; }
+        .ranking-sub-tab:hover { color: #374151; background: rgba(0, 0, 0, 0.05); }
+        .ranking-sub-tab.active { background: white; color: #667eea; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+
+        #ranking-sub-tabs { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 255, 255, 0.2); }
+
+        /* ===== 分数/姓名隐藏效果（模糊） ===== */
+        .score-hidden { filter: blur(6px); user-select: none; cursor: default; transition: filter 0.3s ease; }
+
+        /* ===== 小组卡片内的小图标按钮 ===== */
+        .group-card .btn-icon { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; border: none; cursor: pointer; transition: transform 0.2s ease; font-size: 0.875rem; }
+        .group-card .btn-icon:hover { transform: scale(1.1); }
+        .group-card .btn-icon.btn-edit { background: #eff6ff; color: #3b82f6; }
+        .group-card .btn-icon.btn-edit:hover { background: #dbeafe; }
+        .group-card .btn-icon.btn-delete { background: #fef2f2; color: #ef4444; }
+        .group-card .btn-icon.btn-delete:hover { background: #fee2e2; }
+
+        /* ===== 自定义滚动条 ===== */
+        .scrollbar-thin::-webkit-scrollbar { width: 4px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+        .bio-avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 3px solid white; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }
+
+        /* ===== 移动端自适应 ===== */
+        @media (max-width: 640px) {
+            .tab-btn { padding: 0.5rem 0.75rem; font-size: 0.75rem; }
+        }
+
+        /* ===== 隐藏类（模糊滤镜变体） ===== */
+        .ranking-card .student-name-hidden { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+        .ranking-card .score-hidden-text { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+        .ranking-card .group-name-hidden { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+        .ranking-card .group-avatar-hidden { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+        .group-card .group-name-hidden { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+        .student-card .score-value.score-hidden-val { filter: blur(6px); user-select: none; transition: filter 0.3s ease; }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    登录覆盖层 — 输入用户名和密码查看排名
+    ============================================================ -->
+    <div id="login-overlay" class="fixed inset-0 z-[9999] flex items-center justify-center" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl mx-4 overflow-hidden">
+            <div class="p-8 pb-4 text-center">
+                <div class="text-5xl mb-3"><i class="fa fa-graduation-cap text-primary"></i></div>
+                <h1 class="text-2xl font-bold text-gray-800">学生积分显示器</h1>
+                <p class="text-sm text-gray-500 mt-1">输入要展示的课堂数据</p>
+            </div>
+            <div class="px-8 pb-8">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">用户名（谁的数据）</label>
+                    <input type="text" id="disp-username" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="输入用户名">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">密码</label>
+                    <input type="password" id="disp-password" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="输入该用户的密码" onkeydown="if(event.key==='Enter')dispLogin()">
+                </div>
+                <div id="disp-login-status" class="mb-4 text-sm text-center hidden"></div>
+                <button onclick="dispLogin()" class="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all shadow-lg">加载数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    Toast 消息容器 — 固定在顶部居中，用于显示操作反馈
+    ============================================================ -->
+    <div id="toast-container" style="position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none;"></div>
+
+    <!-- ============================================================
+    顶部导航栏 — 标题 + 操作按钮 + 文件连接状态
+    ============================================================ -->
+    <header class="fixed top-0 left-0 w-full bg-gradient-dark shadow-lg z-40">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <!-- 应用标题 -->
+            <h1 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-white flex items-center drop-shadow-lg">
+                <i class="fa fa-graduation-cap mr-3 text-2xl"></i>
+                学生积分管理系统 · 显示器
+            </h1>
+            <!-- 右侧功能区 -->
+            <div class="flex items-center space-x-2">
+                <!-- 手动刷新按钮 -->
+                <button id="manual-refresh-btn" class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-4 py-2 rounded-lg flex items-center font-semibold shadow-md text-sm transition-all duration-300" title="手动刷新数据">
+                    <i class="fa fa-refresh mr-1.5"></i>刷新
+                </button>
+                <!-- 隐藏/显示分数一键切换按钮 -->
+                <button id="toggle-hide-scores-btn" class="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white px-4 py-2 rounded-lg flex items-center font-semibold shadow-md text-sm transition-all duration-300" title="隐藏分数">
+                    <i class="fa fa-eye-slash mr-1.5"></i>隐藏分数
+                </button>
+                <!-- 数据文件连接状态指示器 -->
+                <div class="flex items-center space-x-2 bg-white bg-opacity-20 rounded-lg px-3 py-2">
+                    <span id="file-status-indicator" class="w-2 h-2 rounded-full bg-green-400"></span>
+                    <span id="file-status-text" class="text-white text-xs font-medium">data.json</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    主内容区
+    ============================================================ -->
+    <main class="container mx-auto px-4 pt-28 pb-16">
+
+        <!-- ===== 排名区域 ===== -->
+        <section id="ranking-section" class="tab-content mb-8">
+            <div class="bg-white bg-opacity-95 rounded-2xl p-8 shadow-card card-hover">
+
+                <!-- 排名子选项卡：个人排名 / 小组排名 -->
+                <div class="mb-6 rounded-xl p-1.5 inline-flex overflow-hidden shadow-soft" id="ranking-sub-tabs" role="tablist">
+                    <button class="ranking-sub-tab active" id="student-ranking-tab" data-rsubtab="student-ranking-sub" type="button" role="tab" aria-selected="true">
+                        <i class="fa fa-user mr-1"></i>个人排名
+                    </button>
+                    <button class="ranking-sub-tab" id="group-ranking-tab" data-rsubtab="group-ranking-sub" type="button" role="tab" aria-selected="false">
+                        <i class="fa fa-sitemap mr-1"></i>小组排名
+                    </button>
+                </div>
+
+                <!-- 个人排名内容 -->
+                <div id="student-ranking-sub" class="ranking-sub-content">
+                    <!-- 当前积分排名 -->
+                    <div class="mb-10">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-700">
+                            <i class="fa fa-star text-gradient-primary mr-3"></i>学生个人积分排名（当前）
+                        </h3>
+                        <div id="student-ranking-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5"></div>
+                        <p id="student-ranking-empty" class="text-center py-12 text-gray-400 text-lg hidden">暂无学生数据</p>
+                    </div>
+                    <!-- 累计积分排名 -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-700">
+                            <i class="fa fa-history text-gradient-primary mr-3"></i>学生累计积分排名（历史）
+                        </h3>
+                        <div id="student-cumulative-ranking-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5"></div>
+                        <p id="student-cumulative-ranking-empty" class="text-center py-12 text-gray-400 text-lg hidden">暂无学生数据</p>
+                    </div>
+                </div>
+
+                <!-- 小组排名内容 -->
+                <div id="group-ranking-sub" class="ranking-sub-content hidden">
+                    <!-- 小组当前积分排名 -->
+                    <div class="mb-10">
+                        <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-700">
+                            <i class="fa fa-sitemap text-gradient-primary mr-3"></i>小组总积分排名（当前）
+                            <button onclick="speakGroupRanking('current')" class="ml-3 text-primary hover:text-primary/80 text-lg" title="语音播报按排名顺序播报小组">
+                                <i class="fa fa-volume-up"></i>
+                            </button>
+                        </h3>
+                        <div id="group-ranking-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+                        <p id="group-ranking-empty" class="text-center py-12 text-gray-400 text-lg hidden">暂无小组数据</p>
+                    </div>
+                    <!-- 小组累计积分排名 -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-6 flex items-center text-gray-700">
+                            <i class="fa fa-history text-gradient-primary mr-3"></i>小组累计积分排名（历史）
+                            <button onclick="speakGroupRanking('cumulative')" class="ml-3 text-primary hover:text-primary/80 text-lg" title="语音播报按排名顺序播报小组">
+                                <i class="fa fa-volume-up"></i>
+                            </button>
+                        </h3>
+                        <div id="group-cumulative-ranking-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+                        <p id="group-cumulative-ranking-empty" class="text-center py-12 text-gray-400 text-lg hidden">暂无小组数据</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ============================================================
+    隐藏分数设置模态框
+    ============================================================ -->
+    <div id="hide-scores-modal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl modal-content max-h-[90vh] overflow-hidden">
+            <div class="p-6">
+                <!-- 模态框标题 + 关闭按钮 -->
+                <div class="flex justify-between items-center mb-5">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center">
+                        <i class="fa fa-eye-slash mr-2 text-purple-500"></i>隐藏分数设置
+                    </h3>
+                    <button id="close-hide-scores-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fa fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <!-- 全部隐藏/全部显示快捷按钮 -->
+                <div class="flex space-x-3 mb-5">
+                    <button id="hide-all-btn" class="flex-1 py-2.5 px-4 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-semibold text-sm transition-all duration-200 shadow-md">
+                        <i class="fa fa-eye-slash mr-1.5"></i>全部隐藏
+                    </button>
+                    <button id="show-all-btn" class="flex-1 py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-all duration-200">
+                        <i class="fa fa-eye mr-1.5"></i>全部显示
+                    </button>
+                </div>
+
+                <div class="border-t border-gray-200 mb-4"></div>
+
+                <!-- 6 个独立隐藏开关，分别控制不同区域的分数/姓名/小组显示 -->
+                <div class="space-y-3">
+                    <!-- 积分排名 - 分数 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-trophy text-yellow-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">积分排名 - 分数</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-ranking-scores" data-setting="rankingScores">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <!-- 积分排名 - 姓名 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-user text-blue-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">积分排名 - 姓名</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-ranking-names" data-setting="rankingNames">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <!-- 积分排名 - 小组 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-sitemap text-indigo-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">积分排名 - 小组</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-ranking-groups" data-setting="rankingGroups">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <!-- 学生列表 - 分数 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-list-alt text-green-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">学生列表 - 分数</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-student-scores" data-setting="studentScores">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <!-- 积分管理 - 分数 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-calculator text-orange-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">积分管理 - 分数</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-points-scores" data-setting="pointsScores">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <!-- 小组管理 - 分数 -->
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center">
+                            <i class="fa fa-users text-purple-500 w-6"></i>
+                            <span class="ml-2 text-gray-700 font-medium">小组管理 - 分数</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-group-scores" data-setting="groupScores">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <p class="text-xs text-gray-400 mt-4 text-center">
+                    <i class="fa fa-info-circle mr-1"></i>开启后将隐藏对应位置的分数显示
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    主 JavaScript 逻辑
+    ============================================================ -->
+    <script>
+        /* =====================================================
+         * 全局状态变量
+         * ===================================================== */
+        let students = [];              // 学生列表
+        let groups = [];                // 小组列表
+        let studentMap = new Map();     // 学生 ID → 学生对象 的快速查找 Map
+        let groupMap = new Map();       // 小组 ID → 小组对象 的快速查找 Map
+
+        const BIO_RANGE_COUNT = 19;     // 生物图标个数（0-18）
+        let bioIconCache = null;        // 生物图标原始数据缓存
+        let bioBlobUrls = null;         // 生物图标转为 Blob URL 后的缓存
+
+        // ---- 渲染节流相关 ----
+        let lastDataHash = '';          // 上一次渲染的数据指纹，用于避免重复渲染
+        let pendingRenderType = null;   // 待执行的渲染类型
+        let renderScheduled = false;    // 是否已调度渲染
+
+        /**
+         * 计算数据指纹：所有学生的 id:score:cumulativeScore 拼接
+         * 用于快速判断数据是否发生变化
+         */
+        function computeDataFingerprint() {
+            if (!students || students.length === 0) return '';
+            return students.map(s => `${s.id}:${s.score}:${s.cumulativeScore ?? s.score}`).join('|');
+        }
+
+        // ---- 隐藏分数设置 ----
+        let hideSettings = {
+            rankingScores: false,   // 排名卡片 — 分数
+            rankingNames: false,    // 排名卡片 — 姓名
+            rankingGroups: false,   // 排名卡片 — 小组名
+            studentScores: false,   // 学生列表 — 分数
+            pointsScores: false,    // 积分管理 — 分数
+            groupScores: false      // 小组管理 — 分数
+        };
+        const defaultHideSettings = { ...hideSettings };  // 保存默认值用于重置
+
+        /* =====================================================
+         * 认证与文件存储
+         * ===================================================== */
+        let displayUsername = '';
+        let displayPassword = '';
+        let lastUpdatedAt = null;       // 数据最后更新时间
+
+        /** 更新顶部状态指示器的文字和颜色 */
+        function updateFileStatus(text, state) {
+            const indicator = document.getElementById('file-status-indicator');
+            const statusText = document.getElementById('file-status-text');
+            if (!indicator || !statusText) return;
+            indicator.className = state || '';       // state 控制圆点颜色
+            statusText.textContent = text || '';
+        }
+
+        /** 刷新文件状态显示 */
+        function refreshFileStatus() {
+            updateFileStatus(displayUsername ? '展示: ' + displayUsername : '未登录', displayUsername ? '' : 'disconnected');
+        }
+
+        function showDispStatus(msg, isError) {
+            const el = document.getElementById('disp-login-status');
+            if (el) { el.textContent = msg; el.className = 'mb-4 text-sm text-center ' + (isError ? 'text-red-500' : 'text-green-500'); el.classList.remove('hidden'); }
+        }
+
+        async function dispLogin() {
+            const username = document.getElementById('disp-username').value.trim();
+            const password = document.getElementById('disp-password').value;
+            if (!username || !password) { showDispStatus('请填写用户名和密码', true); return; }
+
+            showDispStatus('加载中...', false);
+            const data = await readUserData(username, password);
+            if (!data) { showDispStatus('数据加载失败，请检查用户名和密码', true); return; }
+
+            displayUsername = username;
+            displayPassword = password;
+            lastUpdatedAt = data.updatedAt;
+            applyLoadedData(data);
+
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('login-overlay').style.display = 'none';
+            refreshFileStatus();
+            renderRankings('all', true);
+            startPolling();
+        }
+
+        /* =====================================================
+         * 生物图标模块
+         * 读取本地图标文件并转为可在页面中使用的 URL
+         * ===================================================== */
+        /** 从静态路径加载所有生物图标并转为 Blob URL */
+        async function loadBioIconsFromFiles() {
+            try {
+                const icons = [];
+                const extensions = ['jpg', 'jpeg', 'png', 'svg'];
+                for (let i = 0; i < BIO_RANGE_COUNT; i++) {
+                    let found = false;
+                    for (const ext of extensions) {
+                        try {
+                            const resp = await fetch(`icons/bio_${i}.${ext}`);
+                            if (resp.ok) {
+                                const blob = await resp.blob();
+                                icons.push({ index: i, url: URL.createObjectURL(blob), ext });
+                                found = true;
+                                break;
+                            }
+                        } catch {}
+                    }
+                    if (!found) icons.push({ index: i, url: null, ext: null });
+                }
+                // 释放旧的 Blob URL
+                if (bioBlobUrls) {
+                    bioBlobUrls.forEach(u => { if (u) URL.revokeObjectURL(u); });
+                }
+                bioIconCache = icons;
+                bioBlobUrls = icons.map(i => i.url);
+            } catch (e) {
+                console.error('加载生物图标失败:', e);
+            }
+        }
+
+        /**
+         * 获取指定索引的生物图标 URL
+         * 优先返回 Blob URL
+         */
+        function getBioIcon(index) {
+            if (bioBlobUrls && bioBlobUrls[index]) return bioBlobUrls[index];
+            return null;
+        }
+
+        /* =====================================================
+         * 数据加载 & 应用
+         * ===================================================== */
+        /** 根据学生/小组 ID 重建查找 Map */
+        function buildLookupMaps() {
+            studentMap = new Map(students.map(s => [s.id, s]));
+            groupMap = new Map(groups.map(g => [g.id, g]));
+        }
+
+        /**
+         * 将从文件读取的原始数据应用到全局变量
+         * - 补全 cumulativeScore 字段
+         * - 移除 groups 中的 score（小组分由成员动态计算）
+         * - 应用隐藏分数设置
+         */
+        function applyLoadedData(data) {
+            if (data.students) {
+                students = data.students;
+                students.forEach(student => {
+                    if (student.cumulativeScore === undefined) {
+                        student.cumulativeScore = student.score;
+                    }
+                });
+            }
+            if (data.groups) {
+                groups = data.groups.map(g => {
+                    const { score, ...rest } = g;
+                    return rest;
+                });
+            }
+            buildLookupMaps();
+            if (data.settings && data.settings.hideSettings) {
+                hideSettings = { ...defaultHideSettings, ...data.settings.hideSettings };
+                applyHideSettings();
+            }
+        }
+
+        /** 入口：尝试加载数据文件，成功则应用数据 */
+        async function loadData() {
+            if (!displayUsername || !displayPassword) return false;
+            try {
+                const fileData = await readUserData(displayUsername, displayPassword);
+                if (fileData) {
+                    lastUpdatedAt = fileData.updatedAt;
+                    applyLoadedData(fileData);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('加载数据失败:', error);
+                students = [];
+                groups = [];
+                return false;
+            }
+        }
+
+        /* =====================================================
+         * 云端数据轮询
+         * 每隔 10 秒从 jsdelivr 读取数据，发现更新则重新渲染
+         * ===================================================== */
+        let pollTimer = null;
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(async () => {
+                try {
+                    const data = await readUserData(displayUsername, displayPassword);
+                    if (data && data.updatedAt && data.updatedAt !== lastUpdatedAt) {
+                        lastUpdatedAt = data.updatedAt;
+                        applyLoadedData(data);
+                        renderRankings();
+                    }
+                } catch (e) {
+                    console.error('轮询读取数据失败:', e);
+                }
+            }, 10000);
+        }
+
+        /* =====================================================
+         * 隐藏分数逻辑
+         * 根据 hideSettings 对相应元素添加/移除模糊类
+         * ===================================================== */
+        function applyHideSettings() {
+            // 先清除所有隐藏类
+            document.querySelectorAll('.score-hidden, .student-name-hidden, .score-hidden-text, .group-name-hidden, .group-avatar-hidden').forEach(el => {
+                el.classList.remove('score-hidden', 'student-name-hidden', 'score-hidden-text', 'group-name-hidden', 'group-avatar-hidden');
+            });
+
+            // 按设置逐项应用
+            if (hideSettings.rankingScores) {
+                document.querySelectorAll('#student-ranking-cards .score-value, #student-cumulative-ranking-cards .score-value, #group-ranking-cards .score-value, #group-cumulative-ranking-cards .score-value').forEach(el => el.classList.add('score-hidden'));
+            }
+            if (hideSettings.rankingNames) {
+                document.querySelectorAll('#student-ranking-cards .student-name, #student-cumulative-ranking-cards .student-name').forEach(el => el.classList.add('student-name-hidden'));
+            }
+            if (hideSettings.rankingGroups) {
+                document.querySelectorAll('#student-ranking-cards .group-name, #student-cumulative-ranking-cards .group-name, #group-ranking-cards .group-name, #group-cumulative-ranking-cards .group-name').forEach(el => el.classList.add('group-name-hidden'));
+            }
+            if (Object.values(hideSettings).some(v => v)) {
+                document.querySelectorAll('#group-ranking-cards .group-avatar, #group-cumulative-ranking-cards .group-avatar').forEach(el => el.classList.add('group-avatar-hidden'));
+            }
+        }
+
+        /** 更新顶部"隐藏/显示分数"按钮的文字 */
+        function updateHideScoresButton() {
+            const btn = document.getElementById('toggle-hide-scores-btn');
+            if (!btn) return;
+            const hasHidden = Object.values(hideSettings).some(v => v);
+            btn.innerHTML = hasHidden ? '<i class="fa fa-eye w-6"></i>显示分数' : '<i class="fa fa-eye-slash w-6"></i>隐藏分数';
+        }
+
+        /** 同步模态框中开关的状态与 hideSettings 一致 */
+        function updateModalToggles() {
+            Object.keys(hideSettings).forEach(key => {
+                const toggle = document.getElementById(`toggle-${key}`);
+                if (toggle) toggle.checked = hideSettings[key];
+            });
+        }
+
+        /* =====================================================
+         * 排名渲染模块
+         * ===================================================== */
+        /** 根据 groupId 获取小组名称 */
+        function getGroupNameById(groupId) {
+            if (!groupId) return '';
+            const group = groupMap.get(groupId);
+            return group ? group.name : '';
+        }
+
+        /**
+         * 通用排名卡片渲染函数
+         * @param {string} containerId — 卡片容器的 DOM ID
+         * @param {string} emptyId — 空数据提示文本的 DOM ID
+         * @param {Array} sortedList — 已排序的数据列表
+         * @param {string} scoreKey — 用于排序/显示的分数字段名
+         * @param {boolean} isStudent — 是否是学生排名（影响卡片布局）
+         */
+        function renderRankingsTab(containerId, emptyId, sortedList, scoreKey, isStudent) {
+            const container = document.getElementById(containerId);
+            const empty = document.getElementById(emptyId);
+            if (sortedList.length === 0) { container.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+
+            // 生成当前卡片 key 列表，用于检测是否需要重新渲染
+            const newKeys = sortedList.map((item, i) => {
+                const v = item[scoreKey];
+                return `${isStudent ? 's' : 'g'}:${item.id}:${v}`;
+            });
+
+            // 如果现有卡片和数据一致则跳过渲染（性能优化）
+            const existing = container.children;
+            if (existing.length === newKeys.length) {
+                let same = true;
+                for (let i = 0; i < existing.length; i++) {
+                    if (existing[i].getAttribute('data-key') !== newKeys[i]) { same = false; break; }
+                }
+                if (same) return;
+            }
+
+            // 构建新卡片
+            const fragment = document.createDocumentFragment();
+            sortedList.forEach((item, index) => {
+                const rank = index + 1;
+                const scoreVal = item[scoreKey];
+                const isPositive = scoreVal >= 0;
+
+                // 排名徽章：前三名用奖杯图标，其余显示数字
+                let rankBadge, medalColor;
+                if (rank === 1) { rankBadge = '<i class="fa fa-trophy" style="color:#f59e0b;"></i>'; medalColor = 'border-yellow-400'; }
+                else if (rank === 2) { rankBadge = '<i class="fa fa-trophy" style="color:#94a3b8;"></i>'; medalColor = 'border-gray-300'; }
+                else if (rank === 3) { rankBadge = '<i class="fa fa-trophy" style="color:#cd7f32;"></i>'; medalColor = 'border-amber-700'; }
+                else { rankBadge = `<span class="text-gray-500 font-bold">${rank}</span>`; medalColor = 'border-transparent'; }
+
+                let nameHtml, groupHtml, avatarHtml;
+
+                if (isStudent) {
+                    // 学生卡片：显示姓名、小组名、生物图标
+                    const groupName = getGroupNameById(item.groupId);
+                    // 根据分数映射生物图标索引：正分 0-11，负分 12-18
+                    const bioIndex = scoreVal >= 0
+                        ? Math.min(Math.floor(scoreVal / 50), 11)
+                        : Math.min(Math.floor(Math.abs(scoreVal) / 50), 6) + 12;
+                    const icon = getBioIcon(bioIndex);
+                    nameHtml = `<div class="font-bold text-gray-800 truncate student-name">${item.name}</div>`;
+                    groupHtml = `<div class="text-xs text-gray-400 truncate group-name">${groupName || '无小组'}</div>`;
+                    avatarHtml = `<div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 bg-gray-100 flex items-center justify-center text-gray-400">
+                        ${icon ? `<img src="${icon}" class="w-full h-full object-cover">` : `<i class="fa fa-user text-xl"></i>`}
+                    </div>`;
+                } else {
+                    // 小组卡片：显示组名、成员数、首字头像
+                    nameHtml = `<div class="font-bold text-gray-800 truncate group-name">${item.name}</div>`;
+                    groupHtml = `<div class="text-xs text-gray-400">${item.studentIds.length} 名成员</div>`;
+                    avatarHtml = `<div class="w-12 h-12 rounded-full bg-gradient-primary flex items-center justify-center text-white font-bold text-lg flex-shrink-0 group-avatar">${item.name.charAt(0)}</div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'ranking-card rounded-2xl p-4 flex items-center gap-4';
+                card.setAttribute('data-key', newKeys[index]);
+                card.innerHTML = `
+                    <div class="rank-badge border-2 ${medalColor} ${rank <= 3 ? '' : 'bg-gray-100'}">${rankBadge}</div>
+                    ${avatarHtml}
+                    <div class="flex-1 min-w-0">
+                        ${nameHtml}
+                        ${groupHtml}
+                    </div>
+                    <div class="text-lg font-bold ${isPositive ? 'text-green-600' : 'text-red-500'} score-value">${scoreVal}</div>
+                `;
+                fragment.appendChild(card);
+            });
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        /** 渲染学生当前积分排名（降序） */
+        function renderStudentRanking() {
+            const sorted = [...students].sort((a, b) => b.score - a.score);
+            renderRankingsTab('student-ranking-cards', 'student-ranking-empty', sorted, 'score', true);
+        }
+
+        /** 渲染学生累计积分排名（历史） */
+        function renderStudentCumulativeRanking() {
+            const sorted = [...students].sort((a, b) => (b.cumulativeScore || b.score) - (a.cumulativeScore || a.score));
+            renderRankingsTab('student-cumulative-ranking-cards', 'student-cumulative-ranking-empty', sorted, 'cumulativeScore', true);
+        }
+
+        /** 渲染小组当前总积分排名（动态计算成员分数总和） */
+        function renderGroupRanking() {
+            const groupScores = groups.map(group => {
+                const totalScore = group.studentIds.reduce((sum, sid) => {
+                    const s = studentMap.get(sid);
+                    return sum + (s ? s.score : 0);
+                }, 0);
+                return { ...group, totalScore };
+            }).sort((a, b) => b.totalScore - a.totalScore);
+            renderRankingsTab('group-ranking-cards', 'group-ranking-empty', groupScores, 'totalScore', false);
+        }
+
+        /** 渲染小组累计积分排名（历史） */
+        function renderGroupCumulativeRanking() {
+            const groupScores = groups.map(group => {
+                const totalCumScore = group.studentIds.reduce((sum, sid) => {
+                    const s = studentMap.get(sid);
+                    return sum + (s ? (s.cumulativeScore != null ? s.cumulativeScore : s.score) : 0);
+                }, 0);
+                return { ...group, totalCumScore };
+            }).sort((a, b) => b.totalCumScore - a.totalCumScore);
+            renderRankingsTab('group-cumulative-ranking-cards', 'group-cumulative-ranking-empty', groupScores, 'totalCumScore', false);
+        }
+
+        /**
+         * 渲染入口（含节流）
+         * @param {string} type — 'all' | 'student' | 'group'
+         * @param {boolean} sync — 是否同步立即执行
+         */
+        function renderRankings(type = 'all', sync = false) {
+            if (type === 'all') pendingRenderType = 'all';
+            else if (!pendingRenderType || pendingRenderType === type) pendingRenderType = type;
+            else if (pendingRenderType !== 'all') pendingRenderType = 'all';
+
+            if (sync) {
+                flushRender();
+                return;
+            }
+            if (!renderScheduled) {
+                renderScheduled = true;
+                requestAnimationFrame(flushRender);
+            }
+        }
+
+        /** 实际执行渲染：检查数据指纹，按需渲染各排名区域 */
+        function flushRender() {
+            renderScheduled = false;
+            const fp = computeDataFingerprint();
+            if (fp === lastDataHash) { pendingRenderType = null; return; }
+            lastDataHash = fp;
+            const t = pendingRenderType;
+            pendingRenderType = null;
+            if (t === 'all' || t === 'student') {
+                renderStudentRanking();
+                renderStudentCumulativeRanking();
+            }
+            if (t === 'all' || t === 'group') {
+                renderGroupRanking();
+                renderGroupCumulativeRanking();
+            }
+            applyHideSettings();
+        }
+
+        /* =====================================================
+         * 事件绑定（初始化）
+         * ===================================================== */
+        function initEventListeners() {
+            // 手动刷新按钮
+            document.getElementById('manual-refresh-btn').addEventListener('click', async () => {
+                const btn = document.getElementById('manual-refresh-btn');
+                btn.innerHTML = '<i class="fa fa-spinner fa-spin mr-1.5"></i>刷新中...';
+                try {
+                    const data = await readUserData(displayUsername, displayPassword);
+                    if (data) {
+                        lastUpdatedAt = data.updatedAt;
+                        applyLoadedData(data);
+                        renderRankings('all', true);
+                        updateFileStatus('展示: ' + displayUsername, '');
+                    }
+                } catch (e) {
+                    console.error('刷新失败:', e);
+                }
+                btn.innerHTML = '<i class="fa fa-refresh mr-1.5"></i>刷新';
+            });
+
+            // 顶部隐藏分数按钮 — 一键切换全部隐藏/显示
+            document.getElementById('toggle-hide-scores-btn').addEventListener('click', () => {
+                const anyHidden = Object.values(hideSettings).some(v => v);
+                Object.keys(hideSettings).forEach(k => hideSettings[k] = !anyHidden);
+                applyHideSettings();
+                updateHideScoresButton();
+            });
+
+            // 模态框关闭按钮
+            document.getElementById('close-hide-scores-modal').addEventListener('click', () => {
+                document.getElementById('hide-scores-modal').classList.add('hidden');
+            });
+
+            // 排名子选项卡切换（个人/小组）
+            document.querySelectorAll('.ranking-sub-tab').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.ranking-sub-tab').forEach(b => {
+                        b.classList.remove('active');
+                        b.setAttribute('aria-selected', 'false');
+                    });
+                    button.classList.add('active');
+                    button.setAttribute('aria-selected', 'true');
+                    document.querySelectorAll('.ranking-sub-content').forEach(c => {
+                        c.classList.add('hidden');
+                        c.classList.remove('subtab-content-animate');
+                    });
+                    const subTabId = button.getAttribute('data-rsubtab');
+                    const targetContent = document.getElementById(subTabId);
+                    targetContent.classList.remove('hidden');
+                    void targetContent.offsetWidth;  // 触发 reflow 以确保动画生效
+                    targetContent.classList.add('subtab-content-animate');
+                });
+            });
+
+            // 隐藏分数设置开关 — 每个开关独立控制
+            Object.keys(hideSettings).forEach(key => {
+                const toggle = document.getElementById(`toggle-${key}`);
+                if (toggle) {
+                    toggle.addEventListener('change', () => {
+                        hideSettings[key] = toggle.checked;
+                        applyHideSettings();
+                        updateHideScoresButton();
+                    });
+                }
+            });
+
+            // 全部隐藏按钮
+            document.getElementById('hide-all-btn').addEventListener('click', () => {
+                Object.keys(hideSettings).forEach(k => hideSettings[k] = true);
+                updateModalToggles();
+                applyHideSettings();
+                updateHideScoresButton();
+            });
+
+            // 全部显示按钮
+            document.getElementById('show-all-btn').addEventListener('click', () => {
+                Object.keys(hideSettings).forEach(k => hideSettings[k] = false);
+                updateModalToggles();
+                applyHideSettings();
+                updateHideScoresButton();
+            });
+        }
+
+        /* =====================================================
+         * 语音播报模块
+         * 使用浏览器 Web Speech API 按排名顺序播报小组名
+         * ===================================================== */
+        let speakIndex = -1;            // 当前播报进度
+        let speakTimer = null;          // 播报间隔定时器
+        let speakGroups = [];           // 待播报的小组列表
+        let currentSpeakType = null;    // 当前播报类型
+        let speakCancelled = false;     // 是否取消播报
+        let speakGeneration = 0;        // 播报"代"计数器，用于取消旧播报
+        let speakAllRemaining = 0;      // "所有组请吃饭"剩余次数
+
+        /** 在页面顶部显示 Toast 提示消息 */
+        function showToast(msg, type) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'rgba(239,68,68,0.95)' : 'rgba(16,185,129,0.95)';
+            toast.style.cssText = `background:${bg};color:white;padding:12px 24px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:toastIn 0.3s ease;max-width:80vw;text-align:center;pointer-events:auto;backdrop-filter:blur(10px);`;
+            toast.textContent = msg;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        /**
+         * 播放提示音（三音和弦：880Hz + 1760Hz + 2640Hz）
+         * 使用 Web Audio API 生成
+         */
+        function playBeep() {
+            return new Promise((resolve) => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const t = ctx.currentTime;
+
+                    // 基音 880Hz（A5）
+                    const osc1 = ctx.createOscillator();
+                    const g1 = ctx.createGain();
+                    osc1.type = 'sine';
+                    osc1.frequency.setValueAtTime(880, t);
+                    g1.gain.setValueAtTime(0, t);
+                    g1.gain.linearRampToValueAtTime(0.65, t + 0.02);
+                    g1.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+                    osc1.connect(g1).connect(ctx.destination);
+                    osc1.start(t); osc1.stop(t + 0.6);
+
+                    // 高八度 1760Hz（A6）
+                    const osc2 = ctx.createOscillator();
+                    const g2 = ctx.createGain();
+                    osc2.type = 'sine';
+                    osc2.frequency.setValueAtTime(1760, t);
+                    g2.gain.setValueAtTime(0, t);
+                    g2.gain.linearRampToValueAtTime(0.25, t + 0.02);
+                    g2.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+                    osc2.connect(g2).connect(ctx.destination);
+                    osc2.start(t); osc2.stop(t + 0.35);
+
+                    // 高十二度 2640Hz（E7）
+                    const osc3 = ctx.createOscillator();
+                    const g3 = ctx.createGain();
+                    osc3.type = 'sine';
+                    osc3.frequency.setValueAtTime(2640, t);
+                    g3.gain.setValueAtTime(0, t);
+                    g3.gain.linearRampToValueAtTime(0.12, t + 0.01);
+                    g3.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+                    osc3.connect(g3).connect(ctx.destination);
+                    osc3.start(t); osc3.stop(t + 0.18);
+
+                    setTimeout(resolve, 650);
+                } catch (e) { resolve(); }
+            });
+        }
+
+        /** 通过浏览器 SpeechSynthesis API 播报文字 */
+        function speakViaBrowser(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'zh-CN';
+                utterance.rate = 1;
+                utterance.pitch = 1.1;
+                utterance.volume = 1;
+                window.speechSynthesis.speak(utterance);
+                return true;
+            }
+            return false;
+        }
+
+        /** 注入 Toast 动画关键帧样式 */
+        function addToastStyles() {
+            const style = document.createElement('style');
+            style.textContent = `@keyframes toastIn{from{opacity:0;transform:translateY(-20px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}`;
+            document.head.appendChild(style);
+        }
+        addToastStyles();
+
+        /**
+         * 启动小组排名语音播报
+         * @param {string} type — 'current' 当前积分 / 'cumulative' 累计积分
+         */
+        async function speakGroupRanking(type) {
+            speakGeneration++;
+            const gen = speakGeneration;
+            speakCancelled = true;
+            if (speakTimer) {
+                clearTimeout(speakTimer);
+                speakTimer = null;
+            }
+
+            // 按排名排序待播报小组
+            if (type === 'current') {
+                speakGroups = groups.map(group => {
+                    const totalScore = group.studentIds.reduce((sum, sid) => {
+                        const s = studentMap.get(sid);
+                        return sum + (s ? s.score : 0);
+                    }, 0);
+                    return { ...group, totalScore };
+                }).sort((a, b) => b.totalScore - a.totalScore);
+            } else {
+                speakGroups = groups.map(group => {
+                    const totalCumScore = group.studentIds.reduce((sum, sid) => {
+                        const s = studentMap.get(sid);
+                        return sum + (s ? (s.cumulativeScore != null ? s.cumulativeScore : s.score) : 0);
+                    }, 0);
+                    return { ...group, totalCumScore };
+                }).sort((a, b) => b.totalCumScore - a.totalCumScore);
+            }
+
+            if (speakGroups.length === 0) {
+                showToast('没有小组数据可供播报', 'error');
+                return;
+            }
+
+            speakIndex = 0;
+            currentSpeakType = type;
+            speakCancelled = false;
+            speakNextGroup(gen);
+        }
+
+        /** 递归播报下一个小组，间隔 30 秒。完成后播报 10 遍"所有组请吃饭"。 */
+        async function speakNextGroup(gen) {
+            if (gen !== speakGeneration) return;
+            if (speakCancelled) {
+                speakIndex = -1;
+                speakAllRemaining = 0;
+                return;
+            }
+
+            // 所有组播报完成后，播报 10 遍 "所有组请吃饭"
+            if (speakIndex >= speakGroups.length && speakAllRemaining > 0) {
+                if (gen !== speakGeneration) return;
+                await playBeep();
+                if (gen !== speakGeneration) return;
+                const ok = speakViaBrowser('所有组请吃饭');
+                if (!ok) {
+                    showToast('语音播报不可用：浏览器不支持 SpeechSynthesis', 'error');
+                    return;
+                }
+                if (gen !== speakGeneration) return;
+                speakAllRemaining--;
+                if (speakAllRemaining > 0) {
+                    speakTimer = setTimeout(() => speakNextGroup(gen), 3000);
+                } else {
+                    speakIndex = -1;
+                    showToast('语音播报完成', 'success');
+                }
+                return;
+            }
+
+            if (speakIndex >= speakGroups.length) {
+                speakIndex = -1;
+                return;
+            }
+
+            const group = speakGroups[speakIndex];
+            const n = group.name;
+            const text = `${n}，${n}，${n}，请吃饭。${n}，${n}，${n}，请吃饭`;
+
+            if (gen !== speakGeneration) return;
+            await playBeep();
+            if (gen !== speakGeneration) return;
+            const ok = speakViaBrowser(text);
+            if (!ok) {
+                showToast('语音播报不可用：浏览器不支持 SpeechSynthesis', 'error');
+                return;
+            }
+
+            if (gen !== speakGeneration) return;
+            speakIndex++;
+            if (speakIndex < speakGroups.length) {
+                speakTimer = setTimeout(() => speakNextGroup(gen), 30000);
+            } else {
+                speakAllRemaining = 10;
+                speakTimer = setTimeout(() => speakNextGroup(gen), 3000);
+            }
+        }
+
+        /* =====================================================
+         * 应用启动入口
+         * 按顺序：读取配置 → 加载图标 → 绑定事件 → 等待登录
+         * ===================================================== */
+        async function init() {
+            await readConfig();            // 1. 读取仓库配置
+            await loadBioIconsFromFiles(); // 2. 加载生物图标
+            initEventListeners();          // 3. 绑定交互事件
+            updateHideScoresButton();      // 4. 同步隐藏按钮状态
+            refreshFileStatus();           // 5. 更新文件状态
+        }
+
+        // DOM 就绪后启动
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+
+</body>
+</html>
