@@ -360,7 +360,7 @@
                 </div>
                 <div id="register-status" class="mb-4 text-sm text-center hidden"></div>
                 <div id="turnstile-container" class="mb-4 flex justify-center"></div>
-                <button onclick="register()" class="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg">注 册</button>
+                <button id="register-btn" onclick="register()" disabled class="w-full py-3 rounded-xl font-bold text-gray-400 bg-gray-300 cursor-not-allowed">注 册</button>
             </div>
         </div>
     </div>
@@ -1058,6 +1058,18 @@
         }
 
         let _turnstileRendered = false;
+        let _turnstilePassed = false;
+
+        function onTurnstileCallback(token) {
+            _turnstilePassed = !!token;
+            const btn = document.getElementById('register-btn');
+            if (btn) {
+                btn.disabled = !_turnstilePassed;
+                btn.className = _turnstilePassed
+                    ? 'w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg'
+                    : 'w-full py-3 rounded-xl font-bold text-gray-400 bg-gray-300 cursor-not-allowed';
+            }
+        }
 
         function switchAuthTab(tab) {
             document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
@@ -1067,7 +1079,7 @@
             ['login-status', 'register-status'].forEach(id => document.getElementById(id).classList.add('hidden'));
             if (tab === 'register' && !_turnstileRendered && typeof turnstile !== 'undefined' && CONFIG && CONFIG.turnstileSiteKey) {
                 setTimeout(() => {
-                    turnstile.render('#turnstile-container', { sitekey: CONFIG.turnstileSiteKey });
+                    turnstile.render('#turnstile-container', { sitekey: CONFIG.turnstileSiteKey, callback: onTurnstileCallback });
                     _turnstileRendered = true;
                 }, 100);
             }
@@ -1118,8 +1130,7 @@
             if (!username || !password) { showAuthStatus('请填写完整信息', true); return; }
             if (password !== password2) { showAuthStatus('两次密码输入不一致', true); return; }
 
-            const turnstileToken = turnstile ? turnstile.getResponse() : '';
-            if (!turnstileToken) { showAuthStatus('请完成人机验证', true); return; }
+            if (!_turnstilePassed) { showAuthStatus('请先完成人机验证', true); return; }
 
             const pat = document.getElementById('login-pat').value.trim();
             if (!pat) { showAuthStatus('请先填写 GitHub PAT', true); return; }
@@ -1135,7 +1146,8 @@
             } else {
                 showAuthStatus('注册申请已提交，等待管理员审批', false);
             }
-            if (turnstile) turnstile.reset();
+            if (turnstile) { turnstile.reset(); _turnstilePassed = false; }
+            onTurnstileCallback('');
             document.getElementById('register-username').value = '';
             document.getElementById('register-password').value = '';
             document.getElementById('register-password2').value = '';
