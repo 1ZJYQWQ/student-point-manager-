@@ -1,5 +1,6 @@
 {
-  "githubOwner": "你的GitHub用户名",
-  "githubRepo": "你的仓库名（如 student-points）",
-  "githubBranch": "main"
+  "githubOwner": "1zjyqwq",
+  "githubRepo": "student-point-manager-",
+  "githubBranch": "main",
+  "turnstileSiteKey": "0x4AAAAAADuhuj9OBQ-fmvWN"
 }

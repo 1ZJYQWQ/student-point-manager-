@@ -233,3 +233,137 @@ async function writeUserData(username, password, data) {
     );
     return result.ok;
 }
+
+// ===== 删除文件（通过 GitHub API） =====
+async function deleteFileFromGitHub(path, message) {
+    const pat = getPAT();
+    if (!pat) return { ok: false, reason: '未设置 PAT' };
+
+    const url = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}/contents/${path}`;
+
+    const getResp = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } });
+    if (!getResp.ok) return { ok: true };
+    const info = await getResp.json();
+
+    const resp = await fetch(url, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${pat}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: message || `删除 ${path}`, sha: info.sha, branch: CONFIG.githubBranch })
+    });
+
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        return { ok: false, reason: err.message || `HTTP ${resp.status}` };
+    }
+    return { ok: true };
+}
+
+// ===== 审批制：读取待审批用户列表 =====
+async function readPendingUsers() {
+    const text = await readFileFromCDN('pending_users.json');
+    if (!text) return [];
+    try { return JSON.parse(text); } catch { return []; }
+}
+
+// ===== 审批制：提交注册申请 =====
+async function submitRegistration(username, password, displayName) {
+    if (username.length < 2) return { ok: false, reason: '用户名至少2个字符' };
+    if (password.length < 4) return { ok: false, reason: '密码至少4个字符' };
+
+    const existing = await readUsers();
+    if (existing.users[username]) return { ok: false, reason: '用户名已存在' };
+
+    const pending = await readPendingUsers();
+    if (pending.some(u => u.username === username)) return { ok: false, reason: '该用户名已有待审批的申请' };
+
+    const encoder = new TextEncoder();
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const keyMaterial = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+    const derivedBits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+        keyMaterial, 256
+    );
+    const hash = bytesToHex(new Uint8Array(derivedBits));
+
+    const emptyData = {
+        version: '2.0',
+        updatedAt: new Date().toISOString(),
+        students: [],
+        groups: [],
+        individualPointsRules: [],
+        groupPointsRules: [],
+        settings: {}
+    };
+    const encrypted = await encryptData(JSON.stringify(emptyData), password);
+    const dataResult = await writeFileToGitHub(
+        `data_${username}.json.enc`,
+        encrypted,
+        '初始化用户数据 ' + username
+    );
+    if (!dataResult.ok) return { ok: false, reason: '创建数据文件失败: ' + dataResult.reason };
+
+    pending.push({
+        username,
+        displayName: displayName || username,
+        salt: bytesToHex(salt),
+        hash,
+        submittedAt: new Date().toISOString()
+    });
+
+    const result = await writeFileToGitHub(
+        'pending_users.json',
+        JSON.stringify(pending, null, 2),
+        '提交注册申请 ' + username
+    );
+    if (!result.ok) {
+        await deleteFileFromGitHub(`data_${username}.json.enc`, '清理未完成的注册数据');
+        return { ok: false, reason: '提交注册申请失败: ' + result.reason };
+    }
+
+    return { ok: true };
+}
+
+// ===== 审批制：批准用户 =====
+async function approveUser(username) {
+    const pending = await readPendingUsers();
+    const idx = pending.findIndex(u => u.username === username);
+    if (idx === -1) return { ok: false, reason: '未找到待审批的申请' };
+    const entry = pending[idx];
+
+    const usersData = await readUsers();
+    if (usersData.users[username]) return { ok: false, reason: '用户已存在' };
+
+    usersData.users[username] = {
+        displayName: entry.displayName,
+        salt: entry.salt,
+        hash: entry.hash
+    };
+
+    const writeOk = await writeFileToGitHub('users.json', JSON.stringify(usersData, null, 2), '批准用户 ' + username);
+    if (!writeOk) return { ok: false, reason: '写入 users.json 失败' };
+
+    pending.splice(idx, 1);
+    const pendingOk = await writeFileToGitHub('pending_users.json', JSON.stringify(pending, null, 2), '审批完成 ' + username);
+    if (!pendingOk) return { ok: false, reason: '更新待审批列表失败' };
+
+    return { ok: true, displayName: entry.displayName };
+}
+
+// ===== 审批制：拒绝用户 =====
+async function rejectUser(username) {
+    const pending = await readPendingUsers();
+    const idx = pending.findIndex(u => u.username === username);
+    if (idx === -1) return { ok: false, reason: '未找到待审批的申请' };
+
+    pending.splice(idx, 1);
+    const result = await writeFileToGitHub('pending_users.json', JSON.stringify(pending, null, 2), '拒绝注册 ' + username);
+    if (!result.ok) return { ok: false, reason: '更新待审批列表失败' };
+
+    await deleteFileFromGitHub(`data_${username}.json.enc`, '清理被拒绝的用户数据');
+    return { ok: true };
+}
+
+// ===== 获取 Turnstile 站点密钥 =====
+function getTurnstileSiteKey() {
+    return CONFIG ? CONFIG.turnstileSiteKey : '0x4AAAAAADuhuj9OBQ-fmvWN';
+}
