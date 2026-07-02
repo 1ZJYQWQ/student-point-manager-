@@ -1057,12 +1057,20 @@
             });
         }
 
+        let _turnstileRendered = false;
+
         function switchAuthTab(tab) {
             document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
             document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
             document.getElementById('login-tab-btn').className = tab === 'login' ? 'flex-1 pb-3 text-center font-semibold border-b-2 border-primary text-primary transition-colors' : 'flex-1 pb-3 text-center font-semibold text-gray-400 border-b-2 border-transparent transition-colors';
             document.getElementById('register-tab-btn').className = tab === 'register' ? 'flex-1 pb-3 text-center font-semibold border-b-2 border-primary text-primary transition-colors' : 'flex-1 pb-3 text-center font-semibold text-gray-400 border-b-2 border-transparent transition-colors';
             ['login-status', 'register-status'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            if (tab === 'register' && !_turnstileRendered && typeof turnstile !== 'undefined' && CONFIG && CONFIG.turnstileSiteKey) {
+                setTimeout(() => {
+                    turnstile.render('#turnstile-container', { sitekey: CONFIG.turnstileSiteKey });
+                    _turnstileRendered = true;
+                }, 100);
+            }
         }
 
         async function login() {
@@ -1121,7 +1129,12 @@
             const result = await submitRegistration(username, password, displayName);
             if (!result.ok) { showAuthStatus(result.reason, true); return; }
 
-            showAuthStatus('注册申请已提交，等待管理员审批', false);
+            if (result.autoApproved) {
+                showAuthStatus('注册成功！您是首位用户，已自动通过审批', false);
+                document.getElementById('login-username').value = username;
+            } else {
+                showAuthStatus('注册申请已提交，等待管理员审批', false);
+            }
             if (turnstile) turnstile.reset();
             document.getElementById('register-username').value = '';
             document.getElementById('register-password').value = '';
@@ -1355,11 +1368,6 @@
             await readConfig();
             const savedPat = getPAT();
             if (savedPat) document.getElementById('login-pat').value = savedPat;
-
-            // 渲染 Turnstile 人机验证
-            if (typeof turnstile !== 'undefined' && CONFIG && CONFIG.turnstileSiteKey) {
-                turnstile.render('#turnstile-container', { sitekey: CONFIG.turnstileSiteKey });
-            }
 
             // 初始化默认积分规则（当前为空操作，保留接口）
             initDefaultPointsRules();

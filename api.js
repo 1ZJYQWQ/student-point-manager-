@@ -273,8 +273,12 @@ async function submitRegistration(username, password, displayName) {
     const existing = await readUsers();
     if (existing.users[username]) return { ok: false, reason: '用户名已存在' };
 
-    const pending = await readPendingUsers();
-    if (pending.some(u => u.username === username)) return { ok: false, reason: '该用户名已有待审批的申请' };
+    const isFirstUser = Object.keys(existing.users).length === 0;
+
+    if (!isFirstUser) {
+        const pending = await readPendingUsers();
+        if (pending.some(u => u.username === username)) return { ok: false, reason: '该用户名已有待审批的申请' };
+    }
 
     const encoder = new TextEncoder();
     const salt = crypto.getRandomValues(new Uint8Array(32));
@@ -295,6 +299,22 @@ async function submitRegistration(username, password, displayName) {
         settings: {}
     };
     const encrypted = await encryptData(JSON.stringify(emptyData), password);
+
+    if (isFirstUser) {
+        existing.users[username] = {
+            displayName: displayName || username,
+            salt: bytesToHex(salt),
+            hash
+        };
+        const userOk = await writeFileToGitHub('users.json', JSON.stringify(existing, null, 2), '添加首位用户 ' + username);
+        if (!userOk) return { ok: false, reason: '创建用户失败: ' + userOk.reason };
+
+        const dataOk = await writeFileToGitHub(`data_${username}.json.enc`, encrypted, '初始化用户数据 ' + username);
+        if (!dataOk) return { ok: false, reason: '创建数据文件失败: ' + dataOk.reason };
+
+        return { ok: true, autoApproved: true };
+    }
+
     const dataResult = await writeFileToGitHub(
         `data_${username}.json.enc`,
         encrypted,
@@ -302,6 +322,7 @@ async function submitRegistration(username, password, displayName) {
     );
     if (!dataResult.ok) return { ok: false, reason: '创建数据文件失败: ' + dataResult.reason };
 
+    const pending = await readPendingUsers();
     pending.push({
         username,
         displayName: displayName || username,
@@ -320,7 +341,7 @@ async function submitRegistration(username, password, displayName) {
         return { ok: false, reason: '提交注册申请失败: ' + result.reason };
     }
 
-    return { ok: true };
+    return { ok: true, autoApproved: false };
 }
 
 // ===== 审批制：批准用户 =====
