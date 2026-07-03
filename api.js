@@ -74,7 +74,7 @@ async function readFileFromRaw(path) {
 }
 
 // ===== 通过 GitHub API 写入文件 =====
-async function writeFileToGitHub(path, content, message) {
+async function writeFileToGitHub(path, content, message, maxRetries = 5) {
     const pat = getPAT();
     if (!pat) {
         console.error('[api.js] 写入失败：未设置 PAT');
@@ -86,55 +86,82 @@ async function writeFileToGitHub(path, content, message) {
         return { ok: false, reason: '配置未加载，请刷新页面重试' };
     }
 
-    const url = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}/contents/${path}`;
-    const contentBase64 = bytesToBase64(new TextEncoder().encode(content));
+    let retryCount = 0;
+    
+    while (retryCount <= maxRetries) {
+        const url = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}/contents/${path}`;
+        const contentBase64 = bytesToBase64(new TextEncoder().encode(content));
 
-    let sha = null;
-    const getResp = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } });
-    if (getResp.ok) {
-        const info = await getResp.json();
-        sha = info.sha;
-    } else if (getResp.status !== 404) {
-        // 如果不是 404（文件不存在），则记录错误
-        const errInfo = await getResp.json().catch(() => ({}));
-        console.error('[api.js] 获取文件 SHA 失败:', getResp.status, errInfo.message || JSON.stringify(errInfo));
-        return { ok: false, reason: `获取文件信息失败：${errInfo.message || `HTTP ${getResp.status}`}` };
-    }
+        let sha = null;
+        // 获取当前文件的 SHA，添加随机参数避免缓存
+        const getResp = await fetch(url + '?t=' + Date.now(), { headers: { Authorization: `Bearer ${pat}` } });
+        if (getResp.ok) {
+            const info = await getResp.json();
+            sha = info.sha;
+        } else if (getResp.status !== 404) {
+            // 如果不是 404（文件不存在），则记录错误
+            const errInfo = await getResp.json().catch(() => ({}));
+            console.error('[api.js] 获取文件 SHA 失败:', getResp.status, errInfo.message || JSON.stringify(errInfo));
+            return { ok: false, reason: `获取文件信息失败：${errInfo.message || `HTTP ${getResp.status}`}` };
+        }
 
-    const body = {
-        message: message || `更新 ${path}`,
-        content: contentBase64,
-        branch: CONFIG.githubBranch
-    };
-    if (sha) body.sha = sha;
+        const body = {
+            message: message || `更新 ${path}`,
+            content: contentBase64,
+            branch: CONFIG.githubBranch
+        };
+        if (sha) body.sha = sha;
 
-    console.log('[api.js] 正在写入文件:', path, '到仓库:', `${CONFIG.githubOwner}/${CONFIG.githubRepo}@${CONFIG.githubBranch}`);
+        if (retryCount > 0) {
+            console.log(`[api.js] 重试写入 (${retryCount}/${maxRetries}):`, path);
+        } else {
+            console.log('[api.js] 正在写入文件:', path, '到仓库:', `${CONFIG.githubOwner}/${CONFIG.githubRepo}@${CONFIG.githubBranch}`);
+        }
 
-    const resp = await fetch(url, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${pat}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
+        const resp = await fetch(url, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${pat}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
 
-    if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        console.error('[api.js] GitHub API PUT 写入失败:', resp.status, err.message || JSON.stringify(err));
-        let reason = err.message || `HTTP ${resp.status}`;
-        
-        // 提供更详细的错误提示
-        if (resp.status === 401) {
-            reason = 'PAT 无效或已过期，请检查并重新输入';
-        } else if (resp.status === 403) {
-            reason = 'PAT 权限不足，请确保已授予 "Read and Write access to code" 权限';
-        } else if (resp.status === 404) {
-            reason = '仓库不存在或 PAT 无权访问该仓库';
-        } else if (resp.status === 422) {
-            reason = '请求数据无效：' + (err.errors ? JSON.stringify(err.errors) : '未知错误');
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            
+            // 如果是 409 冲突且还有重试次数，则继续重试
+            if (resp.status === 409 && retryCount < maxRetries) {
+                retryCount++;
+                // 等待时间随重试次数递增（避免速率限制）
+                const delay = 500 * retryCount;
+                console.log(`[api.js] 等待 ${delay}ms 后重试...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+            }
+            
+            console.error('[api.js] GitHub API PUT 写入失败:', resp.status, err.message || JSON.stringify(err));
+            let reason = err.message || `HTTP ${resp.status}`;
+            
+            // 提供更详细的错误提示
+            if (resp.status === 401) {
+                reason = 'PAT 无效或已过期，请检查并重新输入';
+            } else if (resp.status === 403) {
+                reason = 'PAT 权限不足，请确保已授予 "Read and Write access to code" 权限';
+            } else if (resp.status === 404) {
+                reason = '仓库不存在或 PAT 无权访问该仓库';
+            } else if (resp.status === 409) {
+                reason = '文件版本冲突：数据已被其他操作修改，请刷新页面后重试';
+            } else if (resp.status === 422) {
+                reason = '请求数据无效：' + (err.errors ? JSON.stringify(err.errors) : '未知错误');
+            }
+            
+            return { ok: false, reason: reason };
         }
         
-        return { ok: false, reason: reason };
+        // 写入成功
+        return { ok: true };
     }
-    return { ok: true };
+    
+    // 所有重试都失败
+    return { ok: false, reason: '文件版本冲突：多次重试后仍无法写入，请刷新页面后重试' };
 }
 
 // ===== AES-GCM 密钥派生 (PBKDF2) =====
