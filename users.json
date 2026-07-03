@@ -5,6 +5,11 @@
       "displayName": "测试管理员",
       "salt": "9d168846a5933938a5c7aef9eb3cdc12e77f7439359d8f1fb114443339d74977",
       "hash": "e978adbed978e3e9e8df64875c982eebb106e798a5986d7bd4b77a8de907eeca"
+    },
+    "Hammer": {
+      "displayName": "Hammer",
+      "salt": "e2c4d5550f09f2e273506924a2dd8e73bc22da91205b04a5557084e13e1bac75",
+      "hash": "ec41b608f46e9e2ec51bad3070c7a0cd5201bb233b770af69ca01991585e8b38"
     }
   }
 }
