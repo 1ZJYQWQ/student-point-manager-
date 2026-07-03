@@ -1050,6 +1050,11 @@
         let currentPassword = '';
         let authConfigLoaded = false;
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         function showAuthStatus(msg, isError) {
             ['login-status', 'register-status'].forEach(id => {
                 const el = document.getElementById(id);
