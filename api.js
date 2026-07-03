@@ -60,13 +60,17 @@ async function readFileFromCDN(path) {
     return await resp.text();
 }
 
-// ===== 从 GitHub raw 直读文件（无缓存，实时，适合编辑器） =====
+// ===== 从 GitHub API 直读文件（无缓存，实时，适合编辑器） =====
 async function readFileFromRaw(path) {
     if (!CONFIG) await readConfig();
-    const url = `https://raw.githubusercontent.com/${CONFIG.githubOwner}/${CONFIG.githubRepo}/${CONFIG.githubBranch}/${path}`;
-    const resp = await fetch(url);
+    const pat = getPAT();
+    if (!pat) return null;
+    const url = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}/contents/${path}`;
+    const resp = await fetch(url, { headers: { Authorization: `Bearer ${pat}` } });
     if (!resp.ok) return null;
-    return await resp.text();
+    const data = await resp.json();
+    if (!data.content) return null;
+    return atob(data.content.replace(/\n/g, ''));
 }
 
 // ===== 通过 GitHub API 写入文件 =====
