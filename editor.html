@@ -1252,7 +1252,7 @@
             student.cumulativeScore = op.oldCumulativeScore; // 恢复累计积分
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
             updateUndoButton();
         }
 
@@ -1513,7 +1513,7 @@
                     renderGroups();
                     renderIndividualPointsRules();
                     renderGroupPointsRules();
-                    saveData();
+                    await saveData();
                     alert('导入成功！');
                 }
             });
@@ -1785,7 +1785,7 @@
             closeBatchPointsModal();
             renderStudents();
             renderGroups();            
-            saveData();
+            await saveData();
             alert(`批量积分应用成功！\n\n共处理 ${appliedCount} 条记录\n积分变动已生效`);
         }
 
@@ -2070,7 +2070,7 @@
             closeUploadStudentsModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
 
             alert(`上传学生数据成功！\n\n共处理 ${importedCount} 名学生`);
         }
@@ -2109,7 +2109,7 @@
                         document.getElementById('students-tab').click();
                         renderStudents();
                         renderGroups();
-                        saveData();
+                        await saveData();
                     } else {
                         alert('未找到可导入的学生数据，请检查文件格式');
                         students = currentStudents;
@@ -2340,7 +2340,7 @@
             closeStudentModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
         }
 
         // ============================================================
@@ -2425,7 +2425,7 @@
             closeCreateGroupModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
         }
 
         // 打开编辑小组模态框：显示当前成员 + 可添加的学生
@@ -2556,7 +2556,7 @@
             closeEditGroupModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
         }
 
         // 从小组中移除指定学生（不删除学生，只清除小组关联）
@@ -2571,7 +2571,7 @@
             }
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
             if (currentGroupId === groupId) {
                 openEditGroupModal(groupId);
             }
@@ -2588,7 +2588,7 @@
                 groups = groups.filter(group => group.id !== groupId);
                 renderStudents();
                 renderGroups();
-                saveData();
+                await saveData();
             }
         }
 
@@ -2683,10 +2683,10 @@
         function debouncedSave() {
             pendingSave = true;
             if (saveTimeout) clearTimeout(saveTimeout);
-            saveTimeout = setTimeout(() => {
+            saveTimeout = setTimeout(async () => {
                 if (pendingSave) {
-                    saveData();
                     pendingSave = false;
+                    await saveData();
                 }
             }, 500);
         }
@@ -2937,12 +2937,15 @@
 
         // 保存数据到云端
         async function saveData() {
-            if (!currentUsername || !currentPassword) return false;
+            if (!currentUsername || !currentPassword) { console.warn('saveData: 未登录'); return false; }
             try {
                 const data = buildSaveData();
-                return await writeUserData(currentUsername, currentPassword, data);
+                const ok = await writeUserData(currentUsername, currentPassword, data);
+                if (!ok) alert('保存失败，请检查网络和 PAT 权限后重试');
+                return ok;
             } catch (error) {
                 console.error('保存数据失败:', error);
+                alert('保存失败: ' + error.message);
                 return false;
             }
         }
@@ -2998,7 +3001,7 @@
                 renderGroupPointsRules();
                 
                 // 保存空数据到文件
-                saveData();
+                await saveData();
                 
                 // 显示清空成功提示
                 const clearButton = document.getElementById('clear-data');
@@ -3025,7 +3028,7 @@
                 renderGroups();
     
                 // 保存数据
-                saveData();
+                await saveData();
 
                 // 显示成功提示
                 const clearBtn = document.getElementById('clear-all-students-btn');
@@ -3130,7 +3133,7 @@
             // 关闭模态框并重新渲染
             closeIndividualRuleModal();
             renderIndividualPointsRules();
-            saveData();
+            await saveData();
         }
         
         // 打开小组积分规则模态框（添加模式或编辑模式）
@@ -3220,7 +3223,7 @@
             // 关闭模态框并重新渲染
             closeGroupRuleModal();
             renderGroupPointsRules();
-            saveData();
+            await saveData();
         }
         
         // ============================================================
@@ -3330,7 +3333,7 @@
             closeStudentsSelectionModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
         }
         
         // 打开小组选择模态框（勾选小组后给其全部成员应用小组积分规则）
@@ -3423,7 +3426,7 @@
             closeGroupsSelectionModal();
             renderStudents();
             renderGroups();
-            saveData();
+            await saveData();
         }
         
         // 删除单人积分规则（确认后移除并保存）
@@ -3432,7 +3435,7 @@
             if (confirm('确定要删除这个积分规则吗？')) {
                 individualPointsRules = individualPointsRules.filter(rule => rule.id !== ruleId);
                 renderIndividualPointsRules();
-                saveData();
+                await saveData();
             }
         }
         
@@ -3442,7 +3445,7 @@
             if (confirm('确定要删除这个积分规则吗？')) {
                 groupPointsRules = groupPointsRules.filter(rule => rule.id !== ruleId);
                 renderGroupPointsRules();
-                saveData();
+                await saveData();
             }
         }
         
@@ -3456,7 +3459,7 @@
         
                 // 重新渲染
                 renderStudents();
-                saveData();
+                await saveData();
                 alert('累计积分同步完成！');
             }
         }

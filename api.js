@@ -99,6 +99,7 @@ async function writeFileToGitHub(path, content, message) {
 
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
+        console.error('[api.js] GitHub API PUT 写入失败:', resp.status, err.message || JSON.stringify(err));
         return { ok: false, reason: err.message || `HTTP ${resp.status}` };
     }
     return { ok: true };
@@ -277,6 +278,7 @@ async function deleteFileFromGitHub(path, message) {
 
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
+        console.error('[api.js] GitHub API DELETE 删除失败:', resp.status, err.message || JSON.stringify(err));
         return { ok: false, reason: err.message || `HTTP ${resp.status}` };
     }
     return { ok: true };
