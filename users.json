@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "users": {
+    "ZJY": {
+      "displayName": "测试管理员",
+      "salt": "9d168846a5933938a5c7aef9eb3cdc12e77f7439359d8f1fb114443339d74977",
+      "hash": "e978adbed978e3e9e8df64875c982eebb106e798a5986d7bd4b77a8de907eeca"
+    }
+  }
+}
