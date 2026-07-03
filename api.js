@@ -307,10 +307,10 @@ async function submitRegistration(username, password, displayName) {
             hash
         };
         const userOk = await writeFileToGitHub('users.json', JSON.stringify(existing, null, 2), '添加首位用户 ' + username);
-        if (!userOk) return { ok: false, reason: '创建用户失败: ' + userOk.reason };
+        if (!userOk.ok) return { ok: false, reason: '创建用户失败: ' + userOk.reason };
 
         const dataOk = await writeFileToGitHub(`data_${username}.json.enc`, encrypted, '初始化用户数据 ' + username);
-        if (!dataOk) return { ok: false, reason: '创建数据文件失败: ' + dataOk.reason };
+        if (!dataOk.ok) return { ok: false, reason: '创建数据文件失败: ' + dataOk.reason };
 
         return { ok: true, autoApproved: true };
     }
@@ -361,11 +361,11 @@ async function approveUser(username) {
     };
 
     const writeOk = await writeFileToGitHub('users.json', JSON.stringify(usersData, null, 2), '批准用户 ' + username);
-    if (!writeOk) return { ok: false, reason: '写入 users.json 失败' };
+    if (!writeOk.ok) return { ok: false, reason: '写入 users.json 失败: ' + writeOk.reason };
 
     pending.splice(idx, 1);
     const pendingOk = await writeFileToGitHub('pending_users.json', JSON.stringify(pending, null, 2), '审批完成 ' + username);
-    if (!pendingOk) return { ok: false, reason: '更新待审批列表失败' };
+    if (!pendingOk.ok) return { ok: false, reason: '更新待审批列表失败: ' + pendingOk.reason };
 
     return { ok: true, displayName: entry.displayName };
 }
