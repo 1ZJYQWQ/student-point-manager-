@@ -2946,7 +2946,7 @@
             try {
                 const data = buildSaveData();
                 const ok = await writeUserData(currentUsername, currentPassword, data);
-                if (!ok) alert('保存失败，请检查网络和 PAT 权限后重试');
+                if (!ok) { console.error('保存失败：writeUserData 返回 false，请查看上方 api.js 输出的详细错误信息'); alert('保存失败，请打开浏览器控制台（F12）查看详细错误信息'); }
                 return ok;
             } catch (error) {
                 console.error('保存数据失败:', error);
