@@ -1237,7 +1237,7 @@
         }
 
         // 撤销最近一次操作，恢复学生的 oldScore
-        function undoLastOperation() {
+        async function undoLastOperation() {
             if (operationLog.length === 0) {
                 alert('没有可撤销的操作');
                 return;
@@ -1760,7 +1760,7 @@
         }
 
         // 应用批量积分：遍历有效记录，逐条修改学生积分 + 记录操作日志
-        function applyBatchPoints() {
+        async function applyBatchPoints() {
             if (batchValidRecords.length === 0) return;
             const appliedCount = batchValidRecords.length;
             batchValidRecords.forEach(record => {
