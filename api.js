@@ -51,10 +51,19 @@ function setPAT(pat) {
     localStorage.setItem('github_pat', pat);
 }
 
-// ===== 从 jsdelivr CDN 读取文件 =====
+// ===== 从 jsdelivr CDN 读取文件（有缓存，适合显示器轮询） =====
 async function readFileFromCDN(path) {
     if (!CONFIG) await readConfig();
     const url = `https://cdn.jsdelivr.net/gh/${CONFIG.githubOwner}/${CONFIG.githubRepo}@${CONFIG.githubBranch}/${path}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    return await resp.text();
+}
+
+// ===== 从 GitHub raw 直读文件（无缓存，实时，适合编辑器） =====
+async function readFileFromRaw(path) {
+    if (!CONFIG) await readConfig();
+    const url = `https://raw.githubusercontent.com/${CONFIG.githubOwner}/${CONFIG.githubRepo}/${CONFIG.githubBranch}/${path}`;
     const resp = await fetch(url);
     if (!resp.ok) return null;
     return await resp.text();
@@ -135,9 +144,9 @@ async function decryptData(encryptedBase64, password) {
     return new TextDecoder().decode(decrypted);
 }
 
-// ===== 用户认证 =====
+// ===== 用户认证（直读 GitHub raw，无缓存） =====
 async function readUsers() {
-    const text = await readFileFromCDN('users.json');
+    const text = await readFileFromRaw('users.json');
     if (!text) return { version: 1, users: {} };
     return JSON.parse(text);
 }
@@ -211,7 +220,22 @@ async function registerUser(username, password, displayName) {
 }
 
 // ===== 业务数据读写 =====
+
+// 从 GitHub raw 直读（编辑器登录用，实时无缓存）
 async function readUserData(username, password) {
+    const encrypted = await readFileFromRaw(`data_${username}.json.enc`);
+    if (!encrypted) return null;
+    try {
+        const decrypted = await decryptData(encrypted, password);
+        return JSON.parse(decrypted);
+    } catch (e) {
+        console.error('[api.js] 解密失败:', e);
+        return null;
+    }
+}
+
+// 从 CDN 读取（显示器轮询用，有缓存但省流量）
+async function readUserDataFromCDN(username, password) {
     const encrypted = await readFileFromCDN(`data_${username}.json.enc`);
     if (!encrypted) return null;
     try {
@@ -258,9 +282,9 @@ async function deleteFileFromGitHub(path, message) {
     return { ok: true };
 }
 
-// ===== 审批制：读取待审批用户列表 =====
+// ===== 审批制：读取待审批用户列表（直读 GitHub raw，无缓存） =====
 async function readPendingUsers() {
-    const text = await readFileFromCDN('pending_users.json');
+    const text = await readFileFromRaw('pending_users.json');
     if (!text) return [];
     try { return JSON.parse(text); } catch { return []; }
 }
