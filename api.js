@@ -76,7 +76,15 @@ async function readFileFromRaw(path) {
 // ===== 通过 GitHub API 写入文件 =====
 async function writeFileToGitHub(path, content, message) {
     const pat = getPAT();
-    if (!pat) return { ok: false, reason: '未设置 PAT' };
+    if (!pat) {
+        console.error('[api.js] 写入失败：未设置 PAT');
+        return { ok: false, reason: '未设置 PAT' };
+    }
+
+    if (!CONFIG) {
+        console.error('[api.js] 写入失败：CONFIG 未加载');
+        return { ok: false, reason: '配置未加载，请刷新页面重试' };
+    }
 
     const url = `https://api.github.com/repos/${CONFIG.githubOwner}/${CONFIG.githubRepo}/contents/${path}`;
     const contentBase64 = bytesToBase64(new TextEncoder().encode(content));
@@ -86,6 +94,11 @@ async function writeFileToGitHub(path, content, message) {
     if (getResp.ok) {
         const info = await getResp.json();
         sha = info.sha;
+    } else if (getResp.status !== 404) {
+        // 如果不是 404（文件不存在），则记录错误
+        const errInfo = await getResp.json().catch(() => ({}));
+        console.error('[api.js] 获取文件 SHA 失败:', getResp.status, errInfo.message || JSON.stringify(errInfo));
+        return { ok: false, reason: `获取文件信息失败：${errInfo.message || `HTTP ${getResp.status}`}` };
     }
 
     const body = {
@@ -94,6 +107,8 @@ async function writeFileToGitHub(path, content, message) {
         branch: CONFIG.githubBranch
     };
     if (sha) body.sha = sha;
+
+    console.log('[api.js] 正在写入文件:', path, '到仓库:', `${CONFIG.githubOwner}/${CONFIG.githubRepo}@${CONFIG.githubBranch}`);
 
     const resp = await fetch(url, {
         method: 'PUT',
@@ -104,7 +119,20 @@ async function writeFileToGitHub(path, content, message) {
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         console.error('[api.js] GitHub API PUT 写入失败:', resp.status, err.message || JSON.stringify(err));
-        return { ok: false, reason: err.message || `HTTP ${resp.status}` };
+        let reason = err.message || `HTTP ${resp.status}`;
+        
+        // 提供更详细的错误提示
+        if (resp.status === 401) {
+            reason = 'PAT 无效或已过期，请检查并重新输入';
+        } else if (resp.status === 403) {
+            reason = 'PAT 权限不足，请确保已授予 "Read and Write access to code" 权限';
+        } else if (resp.status === 404) {
+            reason = '仓库不存在或 PAT 无权访问该仓库';
+        } else if (resp.status === 422) {
+            reason = '请求数据无效：' + (err.errors ? JSON.stringify(err.errors) : '未知错误');
+        }
+        
+        return { ok: false, reason: reason };
     }
     return { ok: true };
 }
@@ -260,6 +288,9 @@ async function writeUserData(username, password, data) {
         encrypted,
         '更新 ' + username + ' 的数据'
     );
+    if (!result.ok) {
+        console.error('[api.js] writeUserData 失败:', result.reason);
+    }
     return result.ok;
 }
 
