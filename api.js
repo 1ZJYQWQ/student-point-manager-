@@ -214,7 +214,7 @@ async function readUsers() {
 async function authenticate(username, password) {
     const usersData = await readUsers();
     const user = usersData.users[username];
-    if (!user) return { ok: false, reason: '用户不存在' };
+    if (!user) return { ok: false, reason: '用户不存在或密码错误' };
 
     const encoder = new TextEncoder();
     const salt = hexToBytes(user.salt);
